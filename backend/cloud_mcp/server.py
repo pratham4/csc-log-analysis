@@ -1,3 +1,6 @@
+from services.log_analysis_service import LogAnalysisService
+from services.s3_log_service import S3LogService
+from models.log_analysis import LogAnalysisSession, HealthyLogPattern, UnhealthyLogAnalysis
 """
 MCP server implementation using fastmcp
 Provides database operation tools via the Model Context Protocol
@@ -60,6 +63,64 @@ def format_database_date(date_str: str) -> str:
 logger = logging.getLogger(__name__)
 
 # Initialize MCP server
+mcp_tool_docs = {
+    "train_on_healthy_logs": "Train healthy log patterns from uploaded files.",
+    "analyze_s3_logs": "Analyze logs from S3 bucket and classify healthy/unhealthy.",
+    "filter_unhealthy_logs": "Filter and retrieve only unhealthy logs from analysis results.",
+    "suggest_solutions": "Suggest solutions for detected unhealthy logs (stub).",
+    "get_log_analysis_summary": "Get summary of log analysis session/results."
+}
+
+log_analysis_service = LogAnalysisService()
+s3_log_service = None  # To be initialized with config if needed
+
+# MCP Tool: Train healthy log patterns
+@mcp.tool("train_on_healthy_logs", docs=mcp_tool_docs["train_on_healthy_logs"])
+async def train_on_healthy_logs(pattern_files: List[str]) -> Dict[str, Any]:
+    count = log_analysis_service.train_healthy_patterns(pattern_files)
+    return {"success": True, "patterns_added": count}
+
+# MCP Tool: Analyze S3 logs
+@mcp.tool("analyze_s3_logs", docs=mcp_tool_docs["analyze_s3_logs"])
+async def analyze_s3_logs(bucket_name: str, prefix: str = "", batch_size: int = 1000) -> Dict[str, Any]:
+    global s3_log_service
+    if s3_log_service is None:
+        s3_log_service = S3LogService(bucket_name)
+    results = s3_log_service.process_logs_in_batches(prefix, batch_size)
+    return {"success": True, "results": results, "count": len(results)}
+
+# MCP Tool: Filter unhealthy logs
+@mcp.tool("filter_unhealthy_logs", docs=mcp_tool_docs["filter_unhealthy_logs"])
+async def filter_unhealthy_logs(analysis_results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    return [r for r in analysis_results if r.get("unhealthy")]
+
+# MCP Tool: Suggest solutions (stub)
+@mcp.tool("suggest_solutions", docs=mcp_tool_docs["suggest_solutions"])
+async def suggest_solutions(unhealthy_logs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    # Stub: Return generic solution for each unhealthy log
+    for log in unhealthy_logs:
+        log["suggested_solution"] = "Please review log and check for TIMEOUT/ERROR/FAILED causes."
+    return unhealthy_logs
+
+# MCP Tool: Get log analysis summary
+@mcp.tool("get_log_analysis_summary", docs=mcp_tool_docs["get_log_analysis_summary"])
+async def get_log_analysis_summary(session_id: int) -> Dict[str, Any]:
+    db_gen = get_db()
+    db = next(db_gen)
+    session = db.query(LogAnalysisSession).filter_by(id=session_id).first()
+    if not session:
+        return {"success": False, "error": "Session not found"}
+    analyses = db.query(UnhealthyLogAnalysis).filter_by(session_id=session_id).all()
+    summary = {
+        "session_id": session_id,
+        "user_id": session.user_id,
+        "started_at": session.started_at,
+        "status": session.status,
+        "total_logs": len(analyses),
+        "unhealthy_count": sum(1 for a in analyses if a.unhealthy_match),
+        "healthy_count": sum(1 for a in analyses if not a.unhealthy_match)
+    }
+    return {"success": True, "summary": summary}
 mcp = FastMCP("Cloud Inventory Database Server")
 
 # Define the actual implementation functions

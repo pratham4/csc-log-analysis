@@ -12,6 +12,23 @@ ERROR_KEYWORDS = {
 }
 
 class LogAnalysisService:
+    def train_healthy_patterns(self, pattern_files: List[str]) -> int:
+        """
+        Train healthy log patterns from a list of file paths.
+        Returns the number of patterns added.
+        """
+        new_patterns = []
+        for fpath in pattern_files:
+            if os.path.isfile(fpath):
+                with open(fpath, 'r', encoding='utf-8') as f:
+                    new_patterns.extend([line.strip() for line in f if line.strip()])
+        self.healthy_patterns.extend(new_patterns)
+        # Optionally, persist to healthy_patterns_dir
+        if self.healthy_patterns_dir:
+            with open(os.path.join(self.healthy_patterns_dir, 'trained_patterns.txt'), 'a', encoding='utf-8') as out:
+                for pattern in new_patterns:
+                    out.write(pattern + '\n')
+        return len(new_patterns)
     def __init__(self, healthy_patterns_dir: str = 'healthy_patterns'):
         self.healthy_patterns_dir = healthy_patterns_dir
         self.healthy_patterns = self._load_healthy_patterns()

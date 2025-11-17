@@ -16,6 +16,32 @@ from utils.json_serializer import prepare_filters_for_storage
 logger = logging.getLogger(__name__)
 
 class ChatService:
+    async def process_log_analysis_query(self, query_type: str, payload: dict, db: Session, user_id: str = None) -> dict:
+        """
+        Route log analysis queries to MCP tools and return structured responses.
+        query_type: one of 'train', 'analyze_s3', 'filter_unhealthy', 'suggest_solutions', 'summary'
+        payload: dict with required parameters for each tool
+        """
+        from cloud_mcp.server import train_on_healthy_logs, analyze_s3_logs, filter_unhealthy_logs, suggest_solutions, get_log_analysis_summary
+        if query_type == 'train':
+            files = payload.get('files', [])
+            return await train_on_healthy_logs(files)
+        elif query_type == 'analyze_s3':
+            bucket = payload.get('bucket_name')
+            prefix = payload.get('prefix', '')
+            batch_size = payload.get('batch_size', 1000)
+            return await analyze_s3_logs(bucket, prefix, batch_size)
+        elif query_type == 'filter_unhealthy':
+            results = payload.get('results', [])
+            return await filter_unhealthy_logs(results)
+        elif query_type == 'suggest_solutions':
+            unhealthy_logs = payload.get('unhealthy_logs', [])
+            return await suggest_solutions(unhealthy_logs)
+        elif query_type == 'summary':
+            session_id = payload.get('session_id')
+            return await get_log_analysis_summary(session_id)
+        else:
+            return {"success": False, "error": "Unknown log analysis query type"}
     def __init__(self):
         self.llm_service = OpenAIService()
         self.auth_service = AuthService()
