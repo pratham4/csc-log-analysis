@@ -16,6 +16,16 @@ from utils.json_serializer import prepare_filters_for_storage
 logger = logging.getLogger(__name__)
 
 class ChatService:
+    def detect_intent(self, user_message: str) -> str:
+        """
+        Simple intent detection for routing: returns 'log_analysis', 'xml_kb', or 'chat'.
+        """
+        msg = user_message.lower()
+        if any(kw in msg for kw in ["log", "logs", "error", "unhealthy", "s3", "pattern", "analysis"]):
+            return "log_analysis"
+        if any(kw in msg for kw in ["xml", "knowledge base", "kb", "schema", "structure"]):
+            return "xml_kb"
+        return "chat"
     async def process_log_analysis_query(self, query_type: str, payload: dict, db: Session, user_id: str = None) -> dict:
         """
         Route log analysis queries to MCP tools and return structured responses.
@@ -48,16 +58,29 @@ class ChatService:
         # Initialize CRUD service later with database session
         
     async def process_chat(
-        self, 
-        user_message: str, 
-        db: Session, 
+        self,
+        user_message: str,
+        db: Session,
         user_token: str = None,
         session_id: str = None,
         user_id: str = None,
         region: str = None
     ) -> ChatResponse:
-        """Process chat with hybrid routing, region validation, and role-based operations"""
+        """
+        Unified chat handler: detects intent and routes to correct service/tool.
+        """
         try:
+            intent = self.detect_intent(user_message)
+            if intent == "log_analysis":
+                # Example: route to log analysis query handler
+                # You may want to parse payload from message or use defaults
+                payload = {"query": user_message}
+                result = await self.process_log_analysis_query("analyze_s3", payload, db, user_id)
+                return ChatResponse(response=str(result), response_type="log_analysis", structured_content=result)
+            elif intent == "xml_kb":
+                # Example: route to XML KB handler (stub)
+                return ChatResponse(response="XML Knowledge Base response (stub)", response_type="xml_kb")
+            # ...existing code for general chat...
             # Authenticate user if token provided
             user_info = None
             if user_token:

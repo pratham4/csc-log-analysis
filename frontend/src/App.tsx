@@ -318,177 +318,112 @@ function App() {
     );
   }
 
+  // Navigation state
+  const [activeTab, setActiveTab] = useState<'chat' | 'logAnalysis' | 'xmlKB'>('chat');
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box
-          sx={{
-            minHeight: '100vh',
-            background: '#ffffff',
-          }}
-        >
-          {/* Header */}
-          <AppBar 
-            position="static" 
-            elevation={0}
-            sx={{ 
-              background: '#253746',
-              boxShadow: '0 2px 10px rgba(31, 76, 95, 0.1)',
-            }}
-          >
-            <Toolbar sx={{ py: 1 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <img 
-                    src="/DSI_logo.png" 
-                    alt="DSI Logo" 
-                    style={{ width: 32, height: 32, borderRadius: '6px' }}
-                  />
-                  <Typography 
-                    variant="h6" 
-                    sx={{ 
-                      fontWeight: 700, 
-                      color: 'white',
-                      fontSize: '1.1rem'
-                    }}
-                  >
-                    Cloud Inventory Assistant
-                  </Typography>
-                </Box>
+      <Box sx={{ minHeight: '100vh', background: '#ffffff' }}>
+        {/* Header */}
+        <AppBar position="static" elevation={0} sx={{ background: '#253746', boxShadow: '0 2px 10px rgba(31, 76, 95, 0.1)' }}>
+          <Toolbar sx={{ py: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <img src="/DSI_logo.png" alt="DSI Logo" style={{ width: 32, height: 32, borderRadius: '6px' }} />
+                <Typography variant="h6" sx={{ fontWeight: 700, color: 'white', fontSize: '1.1rem' }}>
+                  Cloud Inventory Assistant
+                </Typography>
               </Box>
-              
-              {/* User Info with Dropdown */}
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              {/* Navigation Buttons */}
+              <Box sx={{ display: 'flex', gap: 2, ml: 4 }}>
                 <Button
-                  color="inherit"
-                  onClick={handleMenuClick}
-                  endIcon={<ArrowDownIcon />}
-                  sx={{
-                    background: '#253746',
-                    fontSize: '0.875rem',
-                    px: 2,
-                    py: 1,
-                    borderRadius: '8px',
-                    textTransform: 'none'
-                  }}
+                  color={activeTab === 'chat' ? 'primary' : 'inherit'}
+                  variant={activeTab === 'chat' ? 'contained' : 'text'}
+                  onClick={() => setActiveTab('chat')}
+                  sx={{ textTransform: 'none', fontWeight: 600 }}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Box sx={{ 
-                      width: 48, 
-                      height: 48,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      <img 
-                        src="/user_logo.svg" 
-                        alt="User" 
-                        style={{ width: 48, height: 48 }}
-                      />
-                    </Box>
-                    <Box sx={{ textAlign: 'left' }}>
-                      <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.875rem', lineHeight: 1, color: 'white' }}>
-                        {userInfo.display_name || userInfo.username.charAt(0).toUpperCase() + userInfo.username.slice(1)}
+                  Chat Assistant
+                </Button>
+                <Button
+                  color={activeTab === 'xmlKB' ? 'primary' : 'inherit'}
+                  variant={activeTab === 'xmlKB' ? 'contained' : 'text'}
+                  onClick={() => setActiveTab('xmlKB')}
+                  sx={{ textTransform: 'none', fontWeight: 600 }}
+                >
+                  XML Knowledge Base
+                </Button>
+                <Button
+                  color={activeTab === 'logAnalysis' ? 'primary' : 'inherit'}
+                  variant={activeTab === 'logAnalysis' ? 'contained' : 'text'}
+                  onClick={() => setActiveTab('logAnalysis')}
+                  sx={{ textTransform: 'none', fontWeight: 600 }}
+                >
+                  Log Analysis
+                </Button>
+              </Box>
+            </Box>
+            {/* User Info with Dropdown */}
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Button
+                color="inherit"
+                onClick={handleMenuClick}
+                endIcon={<ArrowDownIcon />}
+                sx={{ background: '#253746', fontSize: '0.875rem', px: 2, py: 1, borderRadius: '8px', textTransform: 'none' }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <img src="/user_logo.svg" alt="User" style={{ width: 48, height: 48 }} />
+                  </Box>
+                  <Box sx={{ textAlign: 'left' }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.875rem', lineHeight: 1, color: 'white' }}>
+                      {userInfo.display_name || userInfo.username.charAt(0).toUpperCase() + userInfo.username.slice(1)}
+                    </Typography>
+                    <Box sx={{ backgroundColor: '#1F4C5F', borderRadius: '12px', px: 1, py: 0.25, mt: 0.5, display: 'inline-block' }}>
+                      <Typography variant="caption" sx={{ color: 'white', fontSize: '0.65rem', fontWeight: 500 }}>
+                        {userInfo.role.charAt(0).toUpperCase() + userInfo.role.slice(1)}
+                        {userInfo.auth_provider === 'microsoft' && ' (Microsoft)'}
                       </Typography>
-                      <Box sx={{ 
-                        backgroundColor: '#1F4C5F', 
-                        borderRadius: '12px', 
-                        px: 1, 
-                        py: 0.25, 
-                        mt: 0.5,
-                        display: 'inline-block'
-                      }}>
-                        <Typography variant="caption" sx={{ color: 'white', fontSize: '0.65rem', fontWeight: 500 }}>
-                          {userInfo.role.charAt(0).toUpperCase() + userInfo.role.slice(1)}
-                          {userInfo.auth_provider === 'microsoft' && ' (Microsoft)'}
-                        </Typography>
-                      </Box>
                     </Box>
                   </Box>
-                </Button>
-                
-                <Menu
-                  anchorEl={anchorEl}
-                  open={open}
-                  onClose={handleMenuClose}
-                  sx={{
-                    '& .MuiPaper-root': {
-                      backgroundColor: 'white',
-                      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
-                      borderRadius: '8px',
-                      minWidth: '200px',
-                      mt: 1
-                    }
-                  }}
-                  transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                  anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-                >
-                  <MenuItem 
-                    onClick={handleLogout}
-                    sx={{ 
-                      fontSize: '0.875rem',
-                      py: 1.5,
-                      px: 2,
-                      display: 'flex',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      '&:hover': {
-                        backgroundColor: 'rgba(239, 68, 68, 0.1)'
-                      }
-                    }}
-                  >
-                    <LogoutIcon sx={{ fontSize: 16, mr: 1, color: '#ef4444' }} />
-                    Logout
-                  </MenuItem>
-                </Menu>
-              </Box>
-            </Toolbar>
-          </AppBar>
+                </Box>
+              </Button>
+              <Menu
+                anchorEl={anchorEl}
+                open={open}
+                onClose={handleMenuClose}
+                sx={{ '& .MuiPaper-root': { backgroundColor: 'white', boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)', borderRadius: '8px', minWidth: '200px', mt: 1 } }}
+                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+              >
+                <MenuItem onClick={handleLogout} sx={{ fontSize: '0.875rem', py: 1.5, px: 2, display: 'flex', justifyContent: 'center', alignItems: 'center', '&:hover': { backgroundColor: 'rgba(239, 68, 68, 0.1)' } }}>
+                  <LogoutIcon sx={{ fontSize: 16, mr: 1, color: '#ef4444' }} />
+                  Logout
+                </MenuItem>
+              </Menu>
+            </Box>
+          </Toolbar>
+        </AppBar>
 
-          {/* Main Container */}
-          <Container maxWidth="xl" sx={{ py: 3 }}>
-            <Box sx={{ 
-              display: 'flex', 
-              flexDirection: { xs: 'column', lg: 'row' },
-              gap: 3,
-              height: 'calc(100vh - 120px)' // Adjust based on header height
-            }}>
+        {/* Main Container with Routing */}
+        <Container maxWidth="xl" sx={{ py: 3 }}>
+          {activeTab === 'chat' && (
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 3, height: 'calc(100vh - 120px)' }}>
               {/* Chat Section */}
               <Box sx={{ flex: 3, height: '100%' }}>
-                <Paper 
-                  elevation={2}
-                  sx={{
-                    background: '#ffffff',
-                    borderRadius: '12px',
-                    overflow: 'hidden',
-                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-                    height: '100%',
-                    border: '1px solid #e5e7eb',
-                  }}
-                >
+                <Paper elevation={2} sx={{ background: '#ffffff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)', height: '100%', border: '1px solid #e5e7eb' }}>
                   <Box sx={{ height: '100%' }}>
-                    <ChatBot 
-                      userId={userInfo.username} 
-                      userRole={userInfo.role}
-                      selectedRegion={selectedRegion}
-                      regionStatus={regionStatus}
-                    />
+                    <ChatBot userId={userInfo.username} userRole={userInfo.role} selectedRegion={selectedRegion} regionStatus={regionStatus} />
                   </Box>
                 </Paper>
               </Box>
-              
               {/* Right Side Panel */}
               <Box sx={{ flex: 1, minWidth: 280, maxWidth: 320, height: '100%' }}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, height: '100%' }}>
                   {/* Region Panel */}
                   <Box sx={{ flex: '0 0 auto' }}>
-                    <RegionPanel
-                      selectedRegion={selectedRegion}
-                      onRegionChange={setSelectedRegion}
-                      onRegionStatusChange={handleRegionStatusChange}
-                    />
+                    <RegionPanel selectedRegion={selectedRegion} onRegionChange={setSelectedRegion} onRegionStatusChange={handleRegionStatusChange} />
                   </Box>
-                  
                   {/* Job Errors Panel */}
                   <Box sx={{ flex: '1 1 auto', minHeight: 0 }}>
                     <JobErrorsPanel selectedRegion={selectedRegion} />
@@ -496,9 +431,28 @@ function App() {
                 </Box>
               </Box>
             </Box>
-          </Container>
-        </Box>
-      </ThemeProvider>
+          )}
+          {activeTab === 'logAnalysis' && (
+            <Box sx={{ py: 4 }}>
+              {/* Log Analysis Main Component */}
+              {/* You can add props and state management as needed */}
+              <Paper elevation={2} sx={{ background: '#fff', borderRadius: '12px', p: 3 }}>
+                {/* Import LogAnalysis dynamically if needed */}
+                {/* @ts-ignore */}
+                {require('./components/LogAnalysis').default()}
+              </Paper>
+            </Box>
+          )}
+          {activeTab === 'xmlKB' && (
+            <Box sx={{ py: 4 }}>
+              <Paper elevation={2} sx={{ background: '#fff', borderRadius: '12px', p: 3 }}>
+                <Typography variant="h5">XML Knowledge Base (Coming Soon)</Typography>
+              </Paper>
+            </Box>
+          )}
+        </Container>
+      </Box>
+    </ThemeProvider>
   );
 }
 
