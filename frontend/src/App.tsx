@@ -211,25 +211,9 @@ function App() {
       if (userInfo?.auth_provider === 'microsoft' && msalInstance) {
         
         
-        // Clear MSAL cache before logout
+        // Logout from Microsoft
         try {
           const accounts = msalInstance.getAllAccounts();
-          
-          // Clear cache for each account individually using proper MSAL API
-          for (const account of accounts) {
-            try {
-              await msalInstance.clearCache({ account });
-              
-            } catch (cacheError) {
-              console.warn('⚠️ Failed to clear cache for account:', account.username || account.homeAccountId, cacheError);
-            }
-          }
-          
-          // Also try global cache clear
-          await msalInstance.clearCache();
-          
-          
-          // Logout from Microsoft
           if (accounts.length > 0) {
             await msalInstance.logoutPopup({
               account: accounts[0],
@@ -237,7 +221,7 @@ function App() {
             });
           }
         } catch (error) {
-          console.warn('⚠️ Failed to clear MSAL cache:', error);
+          console.warn('⚠️ Failed to logout from Microsoft:', error);
         }
         
         
