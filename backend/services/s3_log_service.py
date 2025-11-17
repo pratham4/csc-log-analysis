@@ -7,8 +7,12 @@ from services.log_analysis_service import LogAnalysisService
 import os
 
 class S3LogService:
-    def __init__(self, bucket_name: str, aws_access_key_id: str = None, aws_secret_access_key: str = None, region_name: str = None):
-        self.bucket_name = bucket_name
+    def __init__(self, bucket_name: str = None, aws_access_key_id: str = None, aws_secret_access_key: str = None, region_name: str = None):
+        # Read from environment if not provided
+        self.bucket_name = bucket_name or os.getenv('S3_BUCKET_NAME')
+        aws_access_key_id = aws_access_key_id or os.getenv('AWS_ACCESS_KEY_ID')
+        aws_secret_access_key = aws_secret_access_key or os.getenv('AWS_SECRET_ACCESS_KEY')
+        region_name = region_name or os.getenv('AWS_REGION')
         self.s3 = boto3.client(
             's3',
             aws_access_key_id=aws_access_key_id,
