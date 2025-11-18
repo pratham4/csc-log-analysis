@@ -135,10 +135,10 @@ function App() {
         }
         
         // UUID-based account keys pattern: UUID.UUID-domain-UUID
-        const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-[a-zA-Z0-9.-]+-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        if (uuidPattern.test(key)) {
-          return true;
-        }
+        // const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-[a-zA-Z0-9.-]+-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        // if (uuidPattern.test(key)) {
+        //   return true;
+        // }
         
         // Token cache patterns
         if (key.includes('AccessToken') || key.includes('RefreshToken') || 
@@ -288,6 +288,9 @@ function App() {
     setRegionStatus(status);
   };
 
+  // Ensure hooks are always called in the same order
+  const [activeTab, setActiveTab] = useState<'chat' | 'logAnalysis' | 'xmlKB'>('chat');
+
   if (isLoading) {
     return (
       <ThemeProvider theme={theme}>
@@ -317,9 +320,6 @@ function App() {
       </ThemeProvider>
     );
   }
-
-  // Navigation state
-  const [activeTab, setActiveTab] = useState<'chat' | 'logAnalysis' | 'xmlKB'>('chat');
 
   return (
     <ThemeProvider theme={theme}>
