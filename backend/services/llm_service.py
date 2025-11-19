@@ -180,6 +180,14 @@ class OpenAIService:
         user_msg_lower = user_message.lower()
         filters = {}
         
+        # Check for specific record counts (e.g., "archive oldest 300 records")
+        import re
+        count_match = re.search(r'\b(\d+)\s*records?\b', user_msg_lower)
+        if count_match:
+            record_count = int(count_match.group(1))
+            filters["limit"] = record_count
+            logger.info(f"Extracted record limit: {record_count} from message: {user_message}")
+        
         # Check if message contains date-related terms that should be parsed by LLM
         date_keywords = [
             'january', 'february', 'march', 'april', 'may', 'june',
@@ -565,6 +573,19 @@ class OpenAIService:
             try:
                 filters_data = json.loads(filters_str) if filters_str else {}
                 filters = filters_data if isinstance(filters_data, dict) else {}
+                
+                # Post-process filters to extract record limits from date_filter if needed
+                if "date_filter" in filters:
+                    date_filter = filters["date_filter"]
+                    # Check if the date_filter contains a record count (e.g., "older than 300 records")
+                    import re
+                    record_match = re.search(r'(\d+)\s*records?', date_filter)
+                    if record_match:
+                        limit_count = int(record_match.group(1))
+                        filters["limit"] = limit_count
+                        # Clean up the date_filter to remove the record count
+                        filters["date_filter"] = "older_than_7_days"  # Default to 7 days for archive operations
+                        logger.info(f"Extracted limit {limit_count} from date_filter for record-specific archive operation")
             except json.JSONDecodeError as e:
                 logger.warning(f"Failed to parse filters JSON '{filters_str}': {e}")
                 # Create error result for invalid filters

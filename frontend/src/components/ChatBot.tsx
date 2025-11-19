@@ -155,6 +155,23 @@ export const ChatBot: React.FC<ChatBotProps> = ({ userId, userRole, selectedRegi
   const sendMessage = async (messageText: string = inputText) => {
     if (!messageText.trim() || isLoading) return;
 
+    // Check if region is connected for database operations
+    if (!isRegionConnected() && 
+        (messageText.toLowerCase().includes('show') || 
+         messageText.toLowerCase().includes('count') || 
+         messageText.toLowerCase().includes('archive') || 
+         messageText.toLowerCase().includes('delete') ||
+         messageText.toLowerCase().includes('statistics'))) {
+      
+      addBotMessage({
+        response: selectedRegion 
+          ? `Region ${selectedRegion} is selected. Please connect to the region first to perform database operations.`
+          : 'No region is connected. Please select and connect to a region first to perform database operations.',
+        requires_confirmation: false,
+      });
+      return;
+    }
+
     setIsLoading(true);
     addUserMessage(messageText);
     setInputText('');
@@ -164,11 +181,11 @@ export const ChatBot: React.FC<ChatBotProps> = ({ userId, userRole, selectedRegi
         message: messageText,
         user_id: userId,
         session_id: sessionId,
-        region: selectedRegion || undefined,
+        region: isRegionConnected() ? selectedRegion : undefined,
       };
 
-      // Always send to backend chat endpoint, let backend route by intent
       const response = await apiService.chatWithAgent(chatMessage);
+      
       addBotMessage(response);
     } catch (error) {
       console.error('Error sending message:', error);
@@ -293,7 +310,7 @@ export const ChatBot: React.FC<ChatBotProps> = ({ userId, userRole, selectedRegi
             <img 
               src="/cloud_bot_white.svg" 
               alt="Cloud Inventory Assistant" 
-              className="chatbot-img-large"
+              style={{ width: 48, height: 48 }}
             />
           </Box>
           <Box sx={{ flexGrow: 1 }}>
@@ -468,7 +485,7 @@ export const ChatBot: React.FC<ChatBotProps> = ({ userId, userRole, selectedRegi
                         <img 
                           src="/user_logo_dark.svg" 
                           alt="User" 
-                          className="chatbot-img-medium"
+                          style={{ width: 40, height: 40 }}
                         />
                       </Box>
                     )}
@@ -539,7 +556,7 @@ export const ChatBot: React.FC<ChatBotProps> = ({ userId, userRole, selectedRegi
                     <img 
                       src="/cloud_bot_colored.svg" 
                       alt="AI" 
-                      className="chatbot-img-medium"
+                      style={{ width: 40, height: 40 }}
                     />
                   </Box>
                   <CircularProgress size={16} sx={{ color: 'primary.main' }} />

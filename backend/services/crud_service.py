@@ -265,6 +265,8 @@ class CRUDService:
         """Preview archive operation without executing"""
         main_model, _ = self._get_model_classes(operation.table)
         
+
+        
         query = self.db.query(main_model)
         query = self._apply_filters(query, operation, main_model)
         
@@ -542,7 +544,19 @@ class CRUDService:
         columns_list = ", ".join(main_columns)
         values_list = ", ".join(main_columns)
         
-        # Step 3: Archive only non-duplicate records with additional safety check
+        # Step 3: Handle LIMIT for specific record counts
+        limit_clause = ""
+        order_clause = ""
+        if "limit" in operation.filters:
+            limit_value = operation.filters["limit"]
+            if isinstance(limit_value, int) and limit_value > 0:
+                # Add ORDER BY to get oldest records first, then LIMIT
+                time_field = "PostedTime" if operation.table == "dsiactivities" else "WhenReceived"
+                order_clause = f"ORDER BY {time_field} ASC"
+                limit_clause = f"LIMIT {limit_value}"
+                logger.info(f"Applying LIMIT {limit_value} to archive operation with {order_clause}")
+        
+        # Step 4: Archive only non-duplicate records with additional safety check
         if operation.table == "dsitransactionlog":
             # For transaction logs, add explicit EXISTS check to prevent GUID conflicts
             archive_query = text(f"""
@@ -556,6 +570,8 @@ class CRUDService:
                     WHERE arch.GUID = {main_table}.GUID
                 )
                 AND {main_table}.GUID IS NOT NULL
+                {order_clause}
+                {limit_clause}
             """)
         else:
             # For activities, use the standard approach
@@ -565,6 +581,8 @@ class CRUDService:
                 SELECT {values_list}
                 FROM {main_table} 
                 WHERE {final_where_clause}
+                {order_clause}
+                {limit_clause}
             """)
         
         # Execute archive with duplicate exclusions and error handling
@@ -622,12 +640,32 @@ class CRUDService:
             else:
                 raise  # Re-raise for other types of errors
         
-        # Step 4: Clean source - delete ALL matching records (including duplicates that were skipped)
-        # Use original where_clause to delete both archived AND duplicate records from main table
-        delete_query = text(f"""
-            DELETE FROM {main_table} 
-            WHERE {where_clause}
-        """)
+        # Step 5: Clean source - delete only the records that were actually archived
+        # Apply the same limit and ordering to ensure we delete exactly what was archived
+        if limit_clause and order_clause:
+            # For limited operations, we need to identify the exact records that were archived
+            # Use a subquery to select the same records that were archived
+            time_field = "PostedTime" if operation.table == "dsiactivities" else "WhenReceived"
+            primary_key = "ActivityID" if operation.table == "dsiactivities" else "GUID"
+            
+            delete_query = text(f"""
+                DELETE FROM {main_table} 
+                WHERE {primary_key} IN (
+                    SELECT {primary_key} FROM (
+                        SELECT {primary_key}
+                        FROM {main_table} 
+                        WHERE {where_clause}
+                        {order_clause}
+                        {limit_clause}
+                    ) AS limited_records
+                )
+            """)
+        else:
+            # For unlimited operations, use the original approach
+            delete_query = text(f"""
+                DELETE FROM {main_table} 
+                WHERE {where_clause}
+            """)
         
         # Use original params without exclusion conditions for delete
         delete_params = {}
@@ -717,6 +755,15 @@ class CRUDService:
         
         if "device_id" in filters and hasattr(model_class, "DeviceID"):
             query = query.filter(model_class.DeviceID == filters["device_id"])
+        
+        # Apply limit for specific record counts (e.g., "archive oldest 300 records")
+        if "limit" in filters:
+            limit_value = filters["limit"]
+            if isinstance(limit_value, int) and limit_value > 0:
+                # For archive operations, order by date to get oldest records first
+                time_field = "PostedTime" if ("activities" in operation.table) else "WhenReceived"
+                query = query.order_by(getattr(model_class, time_field).asc()).limit(limit_value)
+                logger.info(f"Applied record limit of {limit_value} to archive operation, ordering by {time_field}")
         
         return query
     
