@@ -1,6 +1,5 @@
 import React from 'react';
 import { Box, Typography, Button, Paper } from '@mui/material';
-import { StructuredContentDemo } from './components/StructuredContentDemo';
 
 function App() {
   const [showDemo, setShowDemo] = React.useState(false);
@@ -15,7 +14,7 @@ function App() {
         >
           ← Back to Main App
         </Button>
-        <StructuredContentDemo />
+        <Typography>Demo component not available</Typography>
       </Box>
     );
   }

@@ -377,6 +377,24 @@ class ChatService:
             elif tool_used == "execute_sql_query":
                 return await self._format_sql_query_response(mcp_result, region, session_id)
                 
+            elif tool_used == "get_most_occurring_errors":
+                return self._format_dsi_errors_response(mcp_result, region, "Most Occurring Errors")
+                
+            elif tool_used == "get_errors_for_instance_date":
+                return self._format_dsi_errors_response(mcp_result, region, "Instance Errors by Date")
+                
+            elif tool_used == "get_logs_around_error_time":
+                return self._format_dsi_logs_response(mcp_result, region, "Logs Around Error Time")
+                
+            elif tool_used == "get_users_with_most_errors":
+                return self._format_dsi_users_response(mcp_result, region, "Users with Most Errors")
+                
+            elif tool_used == "get_logs_around_datetime":
+                return self._format_dsi_logs_response(mcp_result, region, "Logs Around DateTime")
+                
+            elif tool_used == "get_filtered_dsi_logs":
+                return self._format_dsi_logs_response(mcp_result, region, "Filtered DSI Logs")
+                
             else:
                 # Unknown or null tool - this should not happen with our new logic
                 if tool_used is None:
@@ -2413,6 +2431,208 @@ class ChatService:
                 "timestamp": datetime.now().isoformat()
             }
         }
+
+    def _format_dsi_errors_response(self, mcp_result: dict, region: str, title: str) -> ChatResponse:
+        """Format DSI error analysis response"""
+        if not mcp_result.get("success"):
+            error_message = mcp_result.get("error", "Failed to analyze DSI errors")
+            return ChatResponse(
+                response=f"DSI Error Analysis - {region.upper()} Region\n\n❌ {error_message}",
+                response_type="error",
+                structured_content=self._create_error_structured_content(error_message, region)
+            )
+        
+        # Format the response based on the type of error analysis
+        response_lines = [f"{title} - {region.upper()} Region", ""]
+        
+        if "errors" in mcp_result:
+            errors = mcp_result["errors"]
+            period = mcp_result.get("period", "")
+            instance_filter = mcp_result.get("instance_filter") or mcp_result.get("instance_id")
+            
+            if period:
+                response_lines.append(f"📅 Period: {period}")
+            if instance_filter:
+                response_lines.append(f"🔧 Instance: {instance_filter}")
+            response_lines.append(f"📊 Total Errors Found: {len(errors)}")
+            response_lines.append("")
+            
+            if errors:
+                response_lines.append("🚨 Error Details:")
+                for i, error in enumerate(errors[:10], 1):  # Limit to top 10
+                    count = error.get('occurrence_count') or error.get('error_count', 'Unknown')
+                    instance = error.get('instance_id', 'Unknown')
+                    preview = error.get('error_preview') or error.get('error_message', 'No details')
+                    response_lines.append(f"{i}. Instance: {instance} | Count: {count}")
+                    response_lines.append(f"   Error: {preview[:100]}...")
+                    response_lines.append("")
+            else:
+                response_lines.append("✅ No errors found for the specified criteria.")
+        
+        elif "total_errors" in mcp_result:
+            # Single instance error analysis
+            date = mcp_result.get("date", "")
+            instance_id = mcp_result.get("instance_id", "")
+            total_errors = mcp_result.get("total_errors", 0)
+            
+            response_lines.append(f"🔧 Instance: {instance_id}")
+            response_lines.append(f"📅 Date: {date}")
+            response_lines.append(f"📊 Total Errors: {total_errors}")
+            response_lines.append("")
+            
+            if total_errors > 0:
+                errors = mcp_result.get("errors", [])
+                response_lines.append("🚨 Error Details:")
+                for error in errors[:10]:  # Limit to 10
+                    time = error.get('when_received', 'Unknown')
+                    function_id = error.get('function_call_id', 'Unknown')
+                    error_msg = error.get('error_message', 'No details')
+                    response_lines.append(f"• Time: {time} | Function: {function_id}")
+                    response_lines.append(f"  Error: {error_msg[:100]}...")
+                    response_lines.append("")
+            else:
+                response_lines.append("✅ No errors found for this instance and date.")
+        
+        return ChatResponse(
+            response="\n".join(response_lines),
+            response_type="success",
+            structured_content={
+                "type": "dsi_error_analysis",
+                "title": title,
+                "region": region,
+                "data": mcp_result,
+                "timestamp": datetime.now().isoformat()
+            }
+        )
+    
+    def _format_dsi_users_response(self, mcp_result: dict, region: str, title: str) -> ChatResponse:
+        """Format DSI users with most errors response"""
+        if not mcp_result.get("success"):
+            error_message = mcp_result.get("error", "Failed to analyze user errors")
+            return ChatResponse(
+                response=f"DSI User Analysis - {region.upper()} Region\n\n❌ {error_message}",
+                response_type="error",
+                structured_content=self._create_error_structured_content(error_message, region)
+            )
+        
+        response_lines = [f"{title} - {region.upper()} Region", ""]
+        
+        instance_id = mcp_result.get("instance_id", "")
+        period = mcp_result.get("period", "")
+        users = mcp_result.get("users", [])
+        
+        response_lines.append(f"🔧 Instance: {instance_id}")
+        response_lines.append(f"📅 Period: {period}")
+        response_lines.append(f"👥 Users with Errors: {len(users)}")
+        response_lines.append("")
+        
+        if users:
+            response_lines.append("👤 User Error Statistics:")
+            for i, user in enumerate(users[:10], 1):  # Top 10 users
+                user_id = user.get('user_id', 'Unknown')
+                error_count = user.get('error_count', 0)
+                response_lines.append(f"{i}. User: {user_id} | Errors: {error_count}")
+            response_lines.append("")
+        else:
+            response_lines.append("✅ No users with errors found for this instance and period.")
+        
+        return ChatResponse(
+            response="\n".join(response_lines),
+            response_type="success",
+            structured_content={
+                "type": "dsi_user_analysis",
+                "title": title,
+                "region": region,
+                "data": mcp_result,
+                "timestamp": datetime.now().isoformat()
+            }
+        )
+    
+    def _format_dsi_logs_response(self, mcp_result: dict, region: str, title: str) -> ChatResponse:
+        """Format DSI logs response (for time-based log queries)"""
+        if not mcp_result.get("success"):
+            error_message = mcp_result.get("error", "Failed to retrieve DSI logs")
+            return ChatResponse(
+                response=f"DSI Log Analysis - {region.upper()} Region\n\n❌ {error_message}",
+                response_type="error",
+                structured_content=self._create_error_structured_content(error_message, region)
+            )
+        
+        response_lines = [f"{title} - {region.upper()} Region", ""]
+        
+        # Extract common fields
+        instance_id = mcp_result.get("instance_id", "")
+        total_logs = mcp_result.get("total_logs", 0)
+        logs = mcp_result.get("logs", [])
+        
+        # Time-specific fields
+        error_time = mcp_result.get("error_time")
+        target_datetime = mcp_result.get("target_datetime")
+        time_window = mcp_result.get("time_window", "")
+        
+        # Filter fields
+        user_filter = mcp_result.get("user_filter")
+        filters_info = mcp_result.get("filters", {})
+        
+        # Display summary info
+        if instance_id:
+            response_lines.append(f"🔧 Instance: {instance_id}")
+        if error_time:
+            response_lines.append(f"⏰ Error Time: {error_time}")
+        if target_datetime:
+            response_lines.append(f"🎯 Target DateTime: {target_datetime}")
+        if time_window:
+            response_lines.append(f"⏱️ Time Window: {time_window}")
+        if user_filter:
+            response_lines.append(f"👤 User Filter: {user_filter}")
+        if filters_info:
+            period = filters_info.get("period")
+            if period:
+                response_lines.append(f"📅 Period: {period}")
+        
+        response_lines.append(f"📊 Total Logs Found: {total_logs}")
+        response_lines.append("")
+        
+        # Display log details
+        if logs:
+            response_lines.append("📋 Log Details:")
+            error_count = 0
+            for i, log in enumerate(logs[:15], 1):  # Limit to 15 logs
+                time_received = log.get('when_received', 'Unknown')
+                user_id = log.get('user_id', 'Unknown')
+                function_id = log.get('function_call_id', 'Unknown')
+                has_error = log.get('has_error', False)
+                error_msg = log.get('error_message')
+                
+                if has_error:
+                    error_count += 1
+                    response_lines.append(f"{i}. ❌ {time_received} | User: {user_id}")
+                else:
+                    response_lines.append(f"{i}. ✅ {time_received} | User: {user_id}")
+                
+                response_lines.append(f"   Function: {function_id}")
+                if error_msg:
+                    response_lines.append(f"   Error: {error_msg[:80]}...")
+                response_lines.append("")
+            
+            if error_count > 0:
+                response_lines.append(f"🚨 Logs with Errors: {error_count}/{len(logs)}")
+            else:
+                response_lines.append("✅ No errors found in the retrieved logs.")
+        else:
+            response_lines.append("ℹ️ No logs found for the specified criteria.")
+        
+        return ChatResponse(
+            response="\n".join(response_lines),
+            response_type="success",
+            structured_content={
+                "type": "dsi_log_analysis",
+                "title": title,
+                "region": region,
+                "data": mcp_result,
+                "timestamp": datetime.now().isoformat()
+            }
+        )
 
     def _get_archive_table_name(self, table_name: str) -> str:
         """Get the correct archive table name for a given main table name"""

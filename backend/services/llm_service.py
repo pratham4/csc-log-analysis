@@ -398,6 +398,23 @@ class OpenAIService:
             "activities by server" → MCP_TOOL: execute_sql_query {{"user_prompt": "activities by server"}}
             "show activities where ActivityType is Event" → MCP_TOOL: execute_sql_query {{"user_prompt": "show activities where ActivityType is Event"}}
             "region status" → MCP_TOOL: region_status {{}}
+            
+            DSI STATISTICAL ANALYSIS QUERIES (NEW):
+            - "most occurring errors", "most common errors", "which errors occur most" → get_most_occurring_errors
+            - "errors yesterday for instance X", "yesterday errors for instance X" → get_errors_for_instance_date
+            - "logs around error time", "logs around minute of error" → get_logs_around_error_time
+            - "users with most errors", "which user caused most errors" → get_users_with_most_errors
+            - "logs around datetime", "logs around 2 minutes of datetime" → get_logs_around_datetime
+            - "filter logs by instance/user/app" → get_filtered_dsi_logs
+            
+            DSI STATISTICAL EXAMPLES:
+            "most occurring errors in last 5 days" → MCP_TOOL: get_most_occurring_errors {{"period": "last 5 days"}}
+            "most occurring errors for instance ABC123" → MCP_TOOL: get_most_occurring_errors {{"instance_id": "ABC123"}}
+            "errors yesterday for instance DEF456" → MCP_TOOL: get_errors_for_instance_date {{"instance_id": "DEF456", "date_str": "yesterday"}}
+            "logs around minute of error 20241120145300" → MCP_TOOL: get_logs_around_error_time {{"instance_id": "extracted_from_context", "error_time": "20241120145300"}}
+            "users with most errors for instance XYZ789" → MCP_TOOL: get_users_with_most_errors {{"instance_id": "XYZ789"}}
+            "logs around 2 minutes of 2024-11-20T14:30:00" → MCP_TOOL: get_logs_around_datetime {{"instance_id": "extracted_from_context", "target_datetime": "2024-11-20T14:30:00"}}
+            "filter logs for user john and instance ABC" → MCP_TOOL: get_filtered_dsi_logs {{"user_id": "john", "instance_id": "ABC"}}
             "hello" → None
             "show data" (no context) → CLARIFY_TABLE_NEEDED
 
@@ -448,6 +465,9 @@ class OpenAIService:
                 elif self._is_stats_request(user_message):
                     # Create fallback stats operation with context
                     return await self._create_fallback_stats_operation(user_message, conversation_context)
+                elif self._is_dsi_stats_request(user_message):
+                    # Create fallback DSI statistical analysis operation
+                    return await self._create_fallback_dsi_stats_operation(user_message, conversation_context)
                 
                 return None
                 
@@ -462,6 +482,8 @@ class OpenAIService:
                 return await self._create_fallback_archive_operation(user_message, conversation_context)
             elif self._is_stats_request(user_message):
                 return await self._create_fallback_stats_operation(user_message, conversation_context)
+            elif self._is_dsi_stats_request(user_message):
+                return await self._create_fallback_dsi_stats_operation(user_message, conversation_context)
             
             return None
 
@@ -897,6 +919,46 @@ class OpenAIService:
         
         return False
 
+    def _is_dsi_stats_request(self, message: str) -> bool:
+        """Check if message is requesting DSI statistical analysis"""
+        message_lower = message.lower().strip()
+        
+        # DSI statistical patterns
+        dsi_stats_patterns = [
+            'most occurring errors', 'most common errors', 'errors occur most', 'frequent errors',
+            'errors yesterday', 'yesterday errors', 'errors for instance', 'instance errors',
+            'logs around error', 'logs around minute', 'around error time', 'around minute of error',
+            'users with most errors', 'user caused most errors', 'which user error', 'users error',
+            'logs around datetime', 'logs around 2 mins', 'logs around minutes', 'around datetime',
+            'filter logs', 'filtered logs', 'logs specific to', 'logs by instance', 'logs by user',
+            'transaction statistics', 'transaction analysis', 'dsi statistics', 'dsi analysis'
+        ]
+        
+        # Instance-specific patterns
+        instance_patterns = [
+            'for instance', 'instance id', 'device id', 'specific instance'
+        ]
+        
+        # Time-based patterns
+        time_patterns = [
+            'yesterday', 'last 5 days', 'around time', 'around datetime', 'around minute'
+        ]
+        
+        # Check for DSI statistical patterns
+        for pattern in dsi_stats_patterns:
+            if pattern in message_lower:
+                return True
+        
+        # Check for instance + error combinations
+        has_instance = any(pattern in message_lower for pattern in instance_patterns)
+        has_error = 'error' in message_lower
+        has_time = any(pattern in message_lower for pattern in time_patterns)
+        
+        if has_instance and (has_error or has_time):
+            return True
+        
+        return False
+
     def _extract_primary_table_from_sql(self, sql: str) -> str:
         """Extract the primary table name from a SQL query"""
         try:
@@ -1137,6 +1199,175 @@ class OpenAIService:
             
         except Exception as e:
             logger.error(f"Fallback job logs operation failed: {e}")
+            return None
+
+    async def _create_fallback_dsi_stats_operation(self, user_message: str, conversation_context: str = None) -> Any:
+        """Create fallback DSI statistical analysis operation"""
+        try:
+            import re
+            user_msg_lower = user_message.lower()
+            
+            # Extract instance ID if mentioned
+            instance_id = None
+            instance_match = re.search(r'instance\s+([A-Za-z0-9_-]+)', user_message, re.IGNORECASE)
+            if instance_match:
+                instance_id = instance_match.group(1)
+            
+            # Extract user ID if mentioned
+            user_id = None
+            user_match = re.search(r'user\s+([A-Za-z0-9_-]+)', user_message, re.IGNORECASE)
+            if user_match:
+                user_id = user_match.group(1)
+            
+            # Extract time period
+            period = "last 5 days"  # default
+            if 'yesterday' in user_msg_lower:
+                period = "yesterday"
+            elif 'last week' in user_msg_lower:
+                period = "last week"
+            elif 'last month' in user_msg_lower:
+                period = "last month"
+            elif re.search(r'last\s+(\d+)\s+days', user_msg_lower):
+                match = re.search(r'last\s+(\d+)\s+days', user_msg_lower)
+                period = f"last {match.group(1)} days"
+            
+            # Determine which DSI stats tool to use based on patterns
+            tool_name = None
+            filters = {}
+            
+            if 'most occurring errors' in user_msg_lower or 'most common errors' in user_msg_lower:
+                tool_name = "get_most_occurring_errors"
+                filters = {"period": period}
+                if instance_id:
+                    filters["instance_id"] = instance_id
+                    
+            elif 'errors yesterday' in user_msg_lower or 'yesterday errors' in user_msg_lower:
+                tool_name = "get_errors_for_instance_date"
+                filters = {"date_str": "yesterday"}
+                if instance_id:
+                    filters["instance_id"] = instance_id
+                else:
+                    # Need instance ID for this operation
+                    filters["instance_id"] = "REQUIRED"
+                    
+            elif 'logs around error' in user_msg_lower or 'around minute of error' in user_msg_lower:
+                tool_name = "get_logs_around_error_time"
+                filters = {"minutes_before": 1, "minutes_after": 1}
+                if instance_id:
+                    filters["instance_id"] = instance_id
+                else:
+                    filters["instance_id"] = "REQUIRED"
+                # Note: error_time would need to be extracted from context or user input
+                filters["error_time"] = "REQUIRED"
+                
+            elif 'users with most errors' in user_msg_lower or 'user caused most errors' in user_msg_lower:
+                tool_name = "get_users_with_most_errors"
+                filters = {"period": period}
+                if instance_id:
+                    filters["instance_id"] = instance_id
+                else:
+                    filters["instance_id"] = "REQUIRED"
+                    
+            elif 'logs around datetime' in user_msg_lower or 'logs around 2 mins' in user_msg_lower:
+                tool_name = "get_logs_around_datetime"
+                filters = {"minutes_before": 2, "minutes_after": 2}
+                if instance_id:
+                    filters["instance_id"] = instance_id
+                else:
+                    filters["instance_id"] = "REQUIRED"
+                if user_id:
+                    filters["user_id"] = user_id
+                # Note: target_datetime would need to be extracted from user input
+                filters["target_datetime"] = "REQUIRED"
+                
+            elif 'filter logs' in user_msg_lower or 'logs specific to' in user_msg_lower:
+                tool_name = "get_filtered_dsi_logs"
+                filters = {"period": period}
+                if instance_id:
+                    filters["instance_id"] = instance_id
+                if user_id:
+                    filters["user_id"] = user_id
+                if 'error' in user_msg_lower:
+                    filters["has_errors_only"] = True
+            
+            # Default to most occurring errors if no specific pattern matched
+            if not tool_name:
+                tool_name = "get_most_occurring_errors"
+                filters = {"period": period}
+                if instance_id:
+                    filters["instance_id"] = instance_id
+            
+            # Import the appropriate function
+            if tool_name == "get_most_occurring_errors":
+                from cloud_mcp.server import _get_most_occurring_errors
+                mcp_result = await _get_most_occurring_errors(
+                    filters.get("period", "last 5 days"),
+                    filters.get("instance_id"),
+                    filters.get("limit", 10)
+                )
+            elif tool_name == "get_errors_for_instance_date":
+                from cloud_mcp.server import _get_errors_for_instance_date
+                if filters.get("instance_id") == "REQUIRED":
+                    # Return error indicating instance ID is required
+                    mcp_result = {
+                        "success": False,
+                        "error": "Instance ID is required for this operation. Please specify 'for instance {id}'"
+                    }
+                else:
+                    mcp_result = await _get_errors_for_instance_date(
+                        filters["instance_id"],
+                        filters.get("date_str", "yesterday")
+                    )
+            elif tool_name == "get_users_with_most_errors":
+                from cloud_mcp.server import _get_users_with_most_errors
+                if filters.get("instance_id") == "REQUIRED":
+                    mcp_result = {
+                        "success": False,
+                        "error": "Instance ID is required for this operation. Please specify 'for instance {id}'"
+                    }
+                else:
+                    mcp_result = await _get_users_with_most_errors(
+                        filters["instance_id"],
+                        filters.get("period", "last 5 days"),
+                        filters.get("limit", 10)
+                    )
+            elif tool_name == "get_filtered_dsi_logs":
+                from cloud_mcp.server import _get_filtered_dsi_logs
+                mcp_result = await _get_filtered_dsi_logs(
+                    filters.get("instance_id"),
+                    filters.get("user_id"),
+                    filters.get("app_id"),
+                    filters.get("period", "last 7 days"),
+                    filters.get("has_errors_only", False),
+                    filters.get("limit", 100)
+                )
+            else:
+                # For operations requiring more parameters, return a helpful message
+                mcp_result = {
+                    "success": False,
+                    "error": f"This operation requires additional parameters. Please provide more specific information."
+                }
+            
+            # Create result object
+            class EnhancedLLMResult:
+                def __init__(self, tool, filters, mcp_result):
+                    self.tool_used = tool
+                    self.table_used = "dsitransactionlog"  # DSI stats primarily use transaction logs
+                    self.filters = filters
+                    self.mcp_result = mcp_result
+                    self.is_database_operation = True
+                    self.operation = None
+                    self.context_preserved = False
+                    self.context_info = {
+                        "table": "dsitransactionlog",
+                        "filters": filters,
+                        "operation": tool
+                    }
+            
+            return EnhancedLLMResult(tool_name, filters, mcp_result)
+            
+        except Exception as e:
+            logger.error(f"Fallback DSI stats operation failed: {e}")
             return None
         
     async def _handle_clarification_request(self, llm_response: str, original_message: str) -> Any:

@@ -1508,6 +1508,168 @@ async def _execute_sql_query(
             "generated_sql": None
         }
 
+# DSI Statistics Implementation Functions
+async def _get_most_occurring_errors(
+    period: str = "last 5 days",
+    instance_id: str = None,
+    limit: int = 10
+) -> Dict[str, Any]:
+    """Get most occurring errors in DSI transaction logs for a time period"""
+    try:
+        from services.dsi_stats_service import DSIStatsService
+        
+        db_gen = get_db()
+        db = next(db_gen)
+        
+        try:
+            stats_service = DSIStatsService(db)
+            result = await stats_service.get_most_occurring_errors(period, instance_id, limit)
+            return result
+        finally:
+            db.close()
+            
+    except Exception as e:
+        logger.error(f"Error getting most occurring errors: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+async def _get_errors_for_instance_date(
+    instance_id: str,
+    date_str: str = "yesterday"
+) -> Dict[str, Any]:
+    """Get all errors for a specific instance on a specific date"""
+    try:
+        from services.dsi_stats_service import DSIStatsService
+        
+        db_gen = get_db()
+        db = next(db_gen)
+        
+        try:
+            stats_service = DSIStatsService(db)
+            result = await stats_service.get_errors_for_instance_date(instance_id, date_str)
+            return result
+        finally:
+            db.close()
+            
+    except Exception as e:
+        logger.error(f"Error getting errors for instance and date: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+async def _get_logs_around_error_time(
+    instance_id: str,
+    error_time: str,
+    minutes_before: int = 1,
+    minutes_after: int = 1
+) -> Dict[str, Any]:
+    """Get all logs around a specific error time for an instance"""
+    try:
+        from services.dsi_stats_service import DSIStatsService
+        
+        db_gen = get_db()
+        db = next(db_gen)
+        
+        try:
+            stats_service = DSIStatsService(db)
+            result = await stats_service.get_logs_around_error_time(instance_id, error_time, minutes_before, minutes_after)
+            return result
+        finally:
+            db.close()
+            
+    except Exception as e:
+        logger.error(f"Error getting logs around error time: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+async def _get_users_with_most_errors(
+    instance_id: str,
+    period: str = "last 5 days",
+    limit: int = 10
+) -> Dict[str, Any]:
+    """Get users who caused most errors for a specific instance"""
+    try:
+        from services.dsi_stats_service import DSIStatsService
+        
+        db_gen = get_db()
+        db = next(db_gen)
+        
+        try:
+            stats_service = DSIStatsService(db)
+            result = await stats_service.get_users_with_most_errors(instance_id, period, limit)
+            return result
+        finally:
+            db.close()
+            
+    except Exception as e:
+        logger.error(f"Error getting users with most errors: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+async def _get_logs_around_datetime(
+    instance_id: str,
+    target_datetime: str,
+    minutes_before: int = 2,
+    minutes_after: int = 2,
+    user_id: str = None
+) -> Dict[str, Any]:
+    """Get all logs around a specific datetime for an instance, optionally filtered by user"""
+    try:
+        from services.dsi_stats_service import DSIStatsService
+        
+        db_gen = get_db()
+        db = next(db_gen)
+        
+        try:
+            stats_service = DSIStatsService(db)
+            result = await stats_service.get_logs_around_datetime(instance_id, target_datetime, minutes_before, minutes_after, user_id)
+            return result
+        finally:
+            db.close()
+            
+    except Exception as e:
+        logger.error(f"Error getting logs around datetime: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+async def _get_filtered_dsi_logs(
+    instance_id: str = None,
+    user_id: str = None,
+    app_id: str = None,
+    period: str = "last 7 days",
+    has_errors_only: bool = False,
+    limit: int = 100
+) -> Dict[str, Any]:
+    """Get DSI logs filtered by multiple criteria"""
+    try:
+        from services.dsi_stats_service import DSIStatsService
+        
+        db_gen = get_db()
+        db = next(db_gen)
+        
+        try:
+            stats_service = DSIStatsService(db)
+            result = await stats_service.get_filtered_logs(instance_id, user_id, app_id, period, has_errors_only, limit)
+            return result
+        finally:
+            db.close()
+            
+    except Exception as e:
+        logger.error(f"Error getting filtered DSI logs: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
 # Register MCP tools that wrap the internal functions
 @mcp.tool(name="archive_records")
 async def mcp_archive_records(
@@ -1621,6 +1783,118 @@ async def mcp_execute_sql_query(
     """
     return await _execute_sql_query(user_prompt, filters)
 
+@mcp.tool(name="get_most_occurring_errors")
+async def mcp_get_most_occurring_errors(
+    period: str = "last 5 days",
+    instance_id: str = None,
+    limit: int = 10
+) -> Dict[str, Any]:
+    """Get most occurring errors in DSI transaction logs for a time period
+    
+    Parameters:
+    - period: Time period like 'last 5 days', 'last week', 'last month'
+    - instance_id: Optional filter by specific instance/device ID
+    - limit: Maximum number of error types to return (default 10)
+    
+    Returns error statistics including error messages, occurrence counts, and affected instances.
+    """
+    return await _get_most_occurring_errors(period, instance_id, limit)
+
+@mcp.tool(name="get_errors_for_instance_date")
+async def mcp_get_errors_for_instance_date(
+    instance_id: str,
+    date_str: str = "yesterday"
+) -> Dict[str, Any]:
+    """Get all errors for a specific instance on a specific date
+    
+    Parameters:
+    - instance_id: The device/instance ID to query
+    - date_str: Date in 'YYYY-MM-DD' format or 'yesterday' (default)
+    
+    Returns all error records for the specified instance and date.
+    """
+    return await _get_errors_for_instance_date(instance_id, date_str)
+
+@mcp.tool(name="get_logs_around_error_time")
+async def mcp_get_logs_around_error_time(
+    instance_id: str,
+    error_time: str,
+    minutes_before: int = 1,
+    minutes_after: int = 1
+) -> Dict[str, Any]:
+    """Get all logs around a specific error time for an instance
+    
+    Parameters:
+    - instance_id: The device/instance ID to query
+    - error_time: Error timestamp in YYYYMMDDHHMMSS or ISO format
+    - minutes_before: Minutes to look before the error (default 1)
+    - minutes_after: Minutes to look after the error (default 1)
+    
+    Returns all transaction logs in the specified time window around the error.
+    """
+    return await _get_logs_around_error_time(instance_id, error_time, minutes_before, minutes_after)
+
+@mcp.tool(name="get_users_with_most_errors")
+async def mcp_get_users_with_most_errors(
+    instance_id: str,
+    period: str = "last 5 days",
+    limit: int = 10
+) -> Dict[str, Any]:
+    """Get users who caused most errors for a specific instance
+    
+    Parameters:
+    - instance_id: The device/instance ID to query
+    - period: Time period like 'last 5 days', 'last week', 'last month'
+    - limit: Maximum number of users to return (default 10)
+    
+    Returns user statistics including user IDs and their error counts.
+    """
+    return await _get_users_with_most_errors(instance_id, period, limit)
+
+@mcp.tool(name="get_logs_around_datetime")
+async def mcp_get_logs_around_datetime(
+    instance_id: str,
+    target_datetime: str,
+    minutes_before: int = 2,
+    minutes_after: int = 2,
+    user_id: str = None
+) -> Dict[str, Any]:
+    """Get all logs around a specific datetime for an instance, optionally filtered by user
+    
+    Parameters:
+    - instance_id: The device/instance ID to query
+    - target_datetime: Target timestamp in YYYYMMDDHHMMSS or ISO format
+    - minutes_before: Minutes to look before the target time (default 2)
+    - minutes_after: Minutes to look after the target time (default 2)
+    - user_id: Optional filter by specific user ID
+    
+    Returns all transaction logs in the specified time window, optionally filtered by user.
+    """
+    return await _get_logs_around_datetime(instance_id, target_datetime, minutes_before, minutes_after, user_id)
+
+@mcp.tool(name="get_filtered_dsi_logs")
+async def mcp_get_filtered_dsi_logs(
+    instance_id: str = None,
+    user_id: str = None,
+    app_id: str = None,
+    period: str = "last 7 days",
+    has_errors_only: bool = False,
+    limit: int = 100
+) -> Dict[str, Any]:
+    """Get DSI logs filtered by multiple criteria
+    
+    Parameters:
+    - instance_id: Optional filter by device/instance ID
+    - user_id: Optional filter by user ID
+    - app_id: Optional filter by application ID
+    - period: Time period like 'last 7 days', 'last week', 'last month'
+    - has_errors_only: If True, return only logs with errors (default False)  
+    - limit: Maximum number of logs to return (default 100)
+    
+    Returns filtered transaction logs based on the specified criteria.
+    """
+    return await _get_filtered_dsi_logs(instance_id, user_id, app_id, period, has_errors_only, limit)
+
 archive_records = _archive_records  
 delete_archived_records = _delete_archived_records
 get_table_stats = _get_table_stats
@@ -1631,6 +1905,12 @@ execute_confirmed_delete = _execute_confirmed_delete
 query_job_logs = _query_job_logs
 get_job_summary_stats = _get_job_summary_stats
 execute_sql_query = _execute_sql_query
+get_most_occurring_errors = _get_most_occurring_errors
+get_errors_for_instance_date = _get_errors_for_instance_date
+get_logs_around_error_time = _get_logs_around_error_time
+get_users_with_most_errors = _get_users_with_most_errors
+get_logs_around_datetime = _get_logs_around_datetime
+get_filtered_dsi_logs = _get_filtered_dsi_logs
 
 # Schema information for different tables
 activities_schema = {

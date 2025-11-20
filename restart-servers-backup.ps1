@@ -125,7 +125,7 @@ try {
             Write-Host "[WARNING] Backend Server: Still starting..." -ForegroundColor Yellow
         }
     } catch {
-        Write-Host "[WARNING] Backend Server: Still starting..." -ForegroundColor Yellow
+        Write-Host "⚠ Backend Server: Still starting..." -ForegroundColor Yellow
     }
 }
 
@@ -140,7 +140,7 @@ try {
         Write-Host "[WARNING] Frontend Server: Still starting..." -ForegroundColor Yellow
     }
 } catch {
-    Write-Host "[WARNING] Frontend Server: Still starting..." -ForegroundColor Yellow
+    Write-Host "⚠ Frontend Server: Still starting..." -ForegroundColor Yellow
 }
 
 Write-Host ""

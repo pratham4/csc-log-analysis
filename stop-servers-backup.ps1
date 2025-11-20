@@ -11,7 +11,7 @@ function Stop-ProcessesByName {
     if ($processes) {
         Write-Host "Stopping $($processes.Count) $ProcessName process(es)..." -ForegroundColor Yellow
         $processes | Stop-Process -Force
-        Write-Host "[OK] Stopped $ProcessName processes" -ForegroundColor Green
+        Write-Host "✓ Stopped $ProcessName processes" -ForegroundColor Green
     } else {
         Write-Host "No $ProcessName processes found" -ForegroundColor Gray
     }
@@ -42,7 +42,7 @@ function Stop-ProcessesByPort {
             }
         }
         if ($stopped -gt 0) {
-            Write-Host "[OK] Stopped $stopped process(es) on port $Port" -ForegroundColor Green
+            Write-Host "✓ Stopped $stopped process(es) on port $Port" -ForegroundColor Green
         }
     } else {
         Write-Host "No processes found on port $Port" -ForegroundColor Gray
@@ -54,7 +54,7 @@ $jobs = Get-Job | Where-Object { $_.Name -like "*Server*" -or $_.Name -like "*Ba
 if ($jobs) {
     Write-Host "Stopping background jobs..." -ForegroundColor Yellow
     $jobs | Stop-Job -PassThru | Remove-Job
-    Write-Host "[OK] Stopped $($jobs.Count) background job(s)" -ForegroundColor Green
+    Write-Host "✓ Stopped $($jobs.Count) background job(s)" -ForegroundColor Green
 } else {
     Write-Host "No background server jobs found" -ForegroundColor Gray
 }
@@ -82,23 +82,23 @@ $port8000 = netstat -ano | findstr ":8000 "
 $port3000 = netstat -ano | findstr ":3000 "
 
 if (-not $port8000) {
-    Write-Host "[OK] Port 8000 (Backend): Available" -ForegroundColor Green
+    Write-Host "✓ Port 8000 (Backend): Available" -ForegroundColor Green
 } else {
-    Write-Host "[WARNING] Port 8000 (Backend): Still in use" -ForegroundColor Yellow
+    Write-Host "⚠ Port 8000 (Backend): Still in use" -ForegroundColor Yellow
 }
 
 if (-not $port3000) {
-    Write-Host "[OK] Port 3000 (Frontend): Available" -ForegroundColor Green
+    Write-Host "✓ Port 3000 (Frontend): Available" -ForegroundColor Green
 } else {
-    Write-Host "[WARNING] Port 3000 (Frontend): Still in use" -ForegroundColor Yellow
+    Write-Host "⚠ Port 3000 (Frontend): Still in use" -ForegroundColor Yellow
 }
 
 # Check for remaining jobs
 $remainingJobs = Get-Job | Where-Object { $_.Name -like "*Server*" }
 if (-not $remainingJobs) {
-    Write-Host "[OK] No background server jobs running" -ForegroundColor Green
+    Write-Host "✓ No background server jobs running" -ForegroundColor Green
 } else {
-    Write-Host "[WARNING] Some background jobs still running:" -ForegroundColor Yellow
+    Write-Host "⚠ Some background jobs still running:" -ForegroundColor Yellow
     $remainingJobs | Format-Table Name, State -AutoSize
 }
 

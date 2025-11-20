@@ -67,7 +67,7 @@ Stop-ProcessesByPort 3000
 # Additional cleanup - try to stop any python.exe processes
 Stop-ProcessesByName "python"
 
-Write-Host "[OK] Stop phase completed (errors ignored)" -ForegroundColor Green
+Write-Host "✓ Stop phase completed (errors ignored)" -ForegroundColor Green
 Write-Host ""
 
 Write-Host "Step 2: Starting Backend Server..." -ForegroundColor Green
@@ -78,9 +78,9 @@ try {
         Set-Location "E:\Code\CSC-Agentic\backend"
         python main.py
     } | Out-Null
-    Write-Host "[OK] Backend server job started" -ForegroundColor Green
+    Write-Host "✓ Backend server job started" -ForegroundColor Green
 } catch {
-    Write-Host "[ERROR] Failed to start backend server job" -ForegroundColor Red
+    Write-Host "✗ Failed to start backend server job" -ForegroundColor Red
 }
 
 Start-Sleep -Seconds 3
@@ -93,9 +93,9 @@ try {
         Set-Location "E:\Code\CSC-Agentic\frontend"
         npm run dev
     } | Out-Null
-    Write-Host "[OK] Frontend server job started" -ForegroundColor Green
+    Write-Host "✓ Frontend server job started" -ForegroundColor Green
 } catch {
-    Write-Host "[ERROR] Failed to start frontend server job" -ForegroundColor Red
+    Write-Host "✗ Failed to start frontend server job" -ForegroundColor Red
 }
 
 Write-Host ""
@@ -109,9 +109,9 @@ Write-Host "=== Server Status ===" -ForegroundColor Cyan
 try {
     $backendResponse = Invoke-WebRequest -Uri "http://localhost:8000/health" -Method GET -TimeoutSec 5 -ErrorAction SilentlyContinue
     if ($backendResponse.StatusCode -eq 200) {
-        Write-Host "[OK] Backend Server: Running on http://localhost:8000" -ForegroundColor Green
+        Write-Host "✓ Backend Server: Running on http://localhost:8000" -ForegroundColor Green
     } else {
-        Write-Host "[WARNING] Backend Server: Starting... (may take a few more seconds)" -ForegroundColor Yellow
+        Write-Host "⚠ Backend Server: Starting... (may take a few more seconds)" -ForegroundColor Yellow
     }
 } catch {
     try {
@@ -119,13 +119,13 @@ try {
         $tcpClient = New-Object System.Net.Sockets.TcpClient
         $tcpClient.ConnectAsync("localhost", 8000).Wait(3000)
         if ($tcpClient.Connected) {
-            Write-Host "[OK] Backend Server: Port 8000 is active" -ForegroundColor Green
+            Write-Host "✓ Backend Server: Port 8000 is active" -ForegroundColor Green
             $tcpClient.Close()
         } else {
-            Write-Host "[WARNING] Backend Server: Still starting..." -ForegroundColor Yellow
+            Write-Host "⚠ Backend Server: Still starting..." -ForegroundColor Yellow
         }
     } catch {
-        Write-Host "[WARNING] Backend Server: Still starting..." -ForegroundColor Yellow
+        Write-Host "⚠ Backend Server: Still starting..." -ForegroundColor Yellow
     }
 }
 
@@ -134,13 +134,13 @@ try {
     $tcpClient = New-Object System.Net.Sockets.TcpClient
     $tcpClient.ConnectAsync("localhost", 3000).Wait(3000)
     if ($tcpClient.Connected) {
-        Write-Host "[OK] Frontend Server: Running on http://localhost:3000" -ForegroundColor Green
+        Write-Host "✓ Frontend Server: Running on http://localhost:3000" -ForegroundColor Green
         $tcpClient.Close()
     } else {
-        Write-Host "[WARNING] Frontend Server: Still starting..." -ForegroundColor Yellow
+        Write-Host "⚠ Frontend Server: Still starting..." -ForegroundColor Yellow
     }
 } catch {
-    Write-Host "[WARNING] Frontend Server: Still starting..." -ForegroundColor Yellow
+    Write-Host "⚠ Frontend Server: Still starting..." -ForegroundColor Yellow
 }
 
 Write-Host ""

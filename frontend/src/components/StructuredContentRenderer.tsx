@@ -1273,6 +1273,358 @@ const StructuredContentRenderer: React.FC<StructuredContentProps> = ({
     </Card>
   );
 
+  const renderDSIErrorAnalysisCard = (data: any) => (
+    <Card
+      elevation={0}
+      sx={{
+        maxWidth: "500px",
+        backgroundColor: "#F0F0F0",
+        borderRadius: "16px",
+      }}
+    >
+      <CardContent sx={{ p: 2 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1.5 }}>
+          <Box>
+            <img
+              src="/cloud_bot_colored.svg"
+              alt="AI"
+              style={{ width: 40, height: 40 }}
+            />
+          </Box>
+          <Box>
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: 700, color: "#0f172a", fontSize: "1rem" }}
+            >
+              {data.title} - {data.region.toUpperCase()} Region
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{ color: "#64748b", fontSize: "0.85rem" }}
+            >
+              DSI Error Analysis • {new Date(data.timestamp).toLocaleString()}
+            </Typography>
+          </Box>
+        </Box>
+
+        <Box sx={{ mb: 2 }}>
+          {data.data?.period && (
+            <Chip
+              label={`Period: ${data.data.period}`}
+              size="small"
+              sx={{ mr: 1, mb: 1, backgroundColor: "#dbeafe", color: "#1e40af" }}
+            />
+          )}
+          {data.data?.instance_filter && (
+            <Chip
+              label={`Instance: ${data.data.instance_filter}`}
+              size="small"
+              sx={{ mr: 1, mb: 1, backgroundColor: "#dcfce7", color: "#166534" }}
+            />
+          )}
+          {data.data?.total_errors_found !== undefined && (
+            <Chip
+              label={`Errors Found: ${data.data.total_errors_found}`}
+              size="small"
+              sx={{ mr: 1, mb: 1, backgroundColor: "#fee2e2", color: "#dc2626" }}
+            />
+          )}
+        </Box>
+
+        {data.data?.errors && data.data.errors.length > 0 && (
+          <Box>
+            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+              🚨 Error Details:
+            </Typography>
+            {data.data.errors.slice(0, 5).map((error: any, index: number) => (
+              <Box
+                key={index}
+                sx={{
+                  p: 1.5,
+                  mb: 1,
+                  backgroundColor: "#ffffff",
+                  borderRadius: "8px",
+                  border: "1px solid #fee2e2",
+                }}
+              >
+                <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: "#dc2626" }}>
+                    #{index + 1}
+                  </Typography>
+                  <Chip
+                    label={`Count: ${error.occurrence_count || error.error_count}`}
+                    size="small"
+                    sx={{ backgroundColor: "#fef3c7", color: "#92400e" }}
+                  />
+                </Box>
+                <Typography variant="body2" sx={{ color: "#374151", mb: 0.5 }}>
+                  <strong>Instance:</strong> {error.instance_id}
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "#6b7280",
+                    fontSize: "0.8rem",
+                    fontFamily: "monospace",
+                    backgroundColor: "#f9fafb",
+                    p: 1,
+                    borderRadius: "4px",
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {error.error_preview || error.error_message}
+                </Typography>
+              </Box>
+            ))}
+            {data.data.errors.length > 5 && (
+              <Typography variant="body2" sx={{ color: "#6b7280", textAlign: "center", mt: 1 }}>
+                ... and {data.data.errors.length - 5} more errors
+              </Typography>
+            )}
+          </Box>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  const renderDSIUserAnalysisCard = (data: any) => (
+    <Card
+      elevation={0}
+      sx={{
+        maxWidth: "450px",
+        backgroundColor: "#F0F0F0",
+        borderRadius: "16px",
+      }}
+    >
+      <CardContent sx={{ p: 2 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1.5 }}>
+          <Box>
+            <img
+              src="/cloud_bot_colored.svg"
+              alt="AI"
+              style={{ width: 40, height: 40 }}
+            />
+          </Box>
+          <Box>
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: 700, color: "#0f172a", fontSize: "1rem" }}
+            >
+              {data.title} - {data.region.toUpperCase()} Region
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{ color: "#64748b", fontSize: "0.85rem" }}
+            >
+              DSI User Analysis • {new Date(data.timestamp).toLocaleString()}
+            </Typography>
+          </Box>
+        </Box>
+
+        <Box sx={{ mb: 2 }}>
+          {data.data?.instance_id && (
+            <Chip
+              label={`Instance: ${data.data.instance_id}`}
+              size="small"
+              sx={{ mr: 1, mb: 1, backgroundColor: "#dcfce7", color: "#166534" }}
+            />
+          )}
+          {data.data?.period && (
+            <Chip
+              label={`Period: ${data.data.period}`}
+              size="small"
+              sx={{ mr: 1, mb: 1, backgroundColor: "#dbeafe", color: "#1e40af" }}
+            />
+          )}
+        </Box>
+
+        {data.data?.users && data.data.users.length > 0 && (
+          <Box>
+            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+              👤 User Error Rankings:
+            </Typography>
+            {data.data.users.slice(0, 10).map((user: any, index: number) => (
+              <Box
+                key={index}
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  p: 1.5,
+                  mb: 1,
+                  backgroundColor: "#ffffff",
+                  borderRadius: "8px",
+                  border: "1px solid #e5e7eb",
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: 700,
+                      color: index === 0 ? "#dc2626" : index === 1 ? "#ea580c" : index === 2 ? "#ca8a04" : "#374151",
+                      minWidth: "24px",
+                    }}
+                  >
+                    #{index + 1}
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    {user.user_id}
+                  </Typography>
+                </Box>
+                <Chip
+                  label={`${user.error_count} errors`}
+                  size="small"
+                  sx={{
+                    backgroundColor: index === 0 ? "#fee2e2" : "#f3f4f6",
+                    color: index === 0 ? "#dc2626" : "#374151",
+                  }}
+                />
+              </Box>
+            ))}
+          </Box>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  const renderDSILogAnalysisCard = (data: any) => (
+    <Card
+      elevation={0}
+      sx={{
+        maxWidth: "600px",
+        backgroundColor: "#F0F0F0",
+        borderRadius: "16px",
+      }}
+    >
+      <CardContent sx={{ p: 2 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1.5 }}>
+          <Box>
+            <img
+              src="/cloud_bot_colored.svg"
+              alt="AI"
+              style={{ width: 40, height: 40 }}
+            />
+          </Box>
+          <Box>
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: 700, color: "#0f172a", fontSize: "1rem" }}
+            >
+              {data.title} - {data.region.toUpperCase()} Region
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{ color: "#64748b", fontSize: "0.85rem" }}
+            >
+              DSI Log Analysis • {new Date(data.timestamp).toLocaleString()}
+            </Typography>
+          </Box>
+        </Box>
+
+        <Box sx={{ mb: 2 }}>
+          {data.data?.instance_id && (
+            <Chip
+              label={`Instance: ${data.data.instance_id}`}
+              size="small"
+              sx={{ mr: 1, mb: 1, backgroundColor: "#dcfce7", color: "#166534" }}
+            />
+          )}
+          {data.data?.time_window && (
+            <Chip
+              label={`Window: ${data.data.time_window}`}
+              size="small"
+              sx={{ mr: 1, mb: 1, backgroundColor: "#dbeafe", color: "#1e40af" }}
+            />
+          )}
+          {data.data?.user_filter && (
+            <Chip
+              label={`User: ${data.data.user_filter}`}
+              size="small"
+              sx={{ mr: 1, mb: 1, backgroundColor: "#fef3c7", color: "#92400e" }}
+            />
+          )}
+          {data.data?.total_logs !== undefined && (
+            <Chip
+              label={`Total Logs: ${data.data.total_logs}`}
+              size="small"
+              sx={{ mr: 1, mb: 1, backgroundColor: "#f3f4f6", color: "#374151" }}
+            />
+          )}
+        </Box>
+
+        {data.data?.target_datetime && (
+          <Box sx={{ mb: 2, p: 1.5, backgroundColor: "#ffffff", borderRadius: "8px" }}>
+            <Typography variant="body2" sx={{ color: "#374151" }}>
+              <strong>🎯 Target Time:</strong> {data.data.target_datetime}
+            </Typography>
+          </Box>
+        )}
+
+        {data.data?.logs && data.data.logs.length > 0 && (
+          <Box>
+            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+              📋 Log Details:
+            </Typography>
+            <Box sx={{ maxHeight: "300px", overflowY: "auto" }}>
+              {data.data.logs.slice(0, 10).map((log: any, index: number) => (
+                <Box
+                  key={index}
+                  sx={{
+                    p: 1.5,
+                    mb: 1,
+                    backgroundColor: log.has_error ? "#fef2f2" : "#ffffff",
+                    borderRadius: "8px",
+                    border: log.has_error ? "1px solid #fecaca" : "1px solid #e5e7eb",
+                  }}
+                >
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 600,
+                        color: log.has_error ? "#dc2626" : "#10b981",
+                      }}
+                    >
+                      {log.has_error ? "❌" : "✅"} {log.when_received}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: "#6b7280" }}>
+                      {log.table_source}
+                    </Typography>
+                  </Box>
+                  <Typography variant="body2" sx={{ color: "#374151", mb: 0.5 }}>
+                    <strong>User:</strong> {log.user_id} • <strong>Function:</strong> {log.function_call_id}
+                  </Typography>
+                  {log.error_message && (
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: "#dc2626",
+                        fontSize: "0.8rem",
+                        fontFamily: "monospace",
+                        backgroundColor: "#fef2f2",
+                        p: 1,
+                        borderRadius: "4px",
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {log.error_message}
+                    </Typography>
+                  )}
+                </Box>
+              ))}
+            </Box>
+            {data.data.logs.length > 10 && (
+              <Typography variant="body2" sx={{ color: "#6b7280", textAlign: "center", mt: 1 }}>
+                ... and {data.data.logs.length - 10} more logs
+              </Typography>
+            )}
+          </Box>
+        )}
+      </CardContent>
+    </Card>
+  );
+
   const renderAccessDeniedCard = (data: any) => (
     <Card
       elevation={0}
@@ -1352,6 +1704,12 @@ const StructuredContentRenderer: React.FC<StructuredContentProps> = ({
       return renderAnalysisCard(content);
     case "access_denied_card":
       return renderAccessDeniedCard(content);
+    case "dsi_error_analysis":
+      return renderDSIErrorAnalysisCard(content);
+    case "dsi_user_analysis":
+      return renderDSIUserAnalysisCard(content);
+    case "dsi_log_analysis":
+      return renderDSILogAnalysisCard(content);
     default:
       // Fallback to plain JSON display for unknown types
       return (
